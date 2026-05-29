@@ -5,6 +5,7 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 from dotenv import load_dotenv
 import os
+import gradio as gr
 
 
 #Env Variables Updates
@@ -19,16 +20,20 @@ def get_date():
 
 system_prompt = """
 You're an assistance to help answer user's query.
+Answer all user queries
 if the user asks date, you can use the get_date tool
 """
 llm = ChatOllama(model="qwen2.5:3b")
 
 agent = create_agent(model=llm, tools=[get_date], system_prompt=system_prompt)
 
-user_query = input("Enter your query:")
-response = agent.invoke({"messages": [{"role" : "user", "content" : user_query}]})
+def chat(message,history):
+    response = agent.invoke({"messages": [{"role": "user", "content": message}]})
+    last_response = response['messages'][-1].content
+    return last_response
 
-print(response['messages'][1].content)
+with gr.Blocks() as demo:
+    gr.Markdown("# AI Chatbot Agent")
+    gr.ChatInterface(fn=chat)
 
-#Gemini response print method
-#print(response['messages'][-1].content[0]['text'])
+demo.launch()
