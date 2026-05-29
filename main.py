@@ -1,26 +1,24 @@
+import os
 from datetime import datetime
+import os
 import uuid
-#from anyio.lowlevel import checkpoint
-#from google.genai._interactions.types import content
 from langchain.agents import create_agent
-#from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from dotenv import load_dotenv
-import os
 import gradio as gr
 #Used for saving history
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
+#Web Search Capability - Third party tool for web search
+from langchain_tavily import TavilySearch
 
-
-#Env Variables Updates
 load_dotenv()
-#google_api_key = os.getenv("GOOGLE_API_KEY")
-
 
 def get_date():
     """ Get current date """
     return datetime.now().strftime("%Y-%m-%d")
+
+search_tool = TavilySearch()
 
 conn = sqlite3.connect("chatbot_memory.db", check_same_thread=False)
 checkpoint = SqliteSaver(conn)
@@ -28,11 +26,12 @@ checkpoint = SqliteSaver(conn)
 system_prompt = """
 You're an assistance to help answer user's query.
 Answer all user queries
-if the user asks date, you can use the get_date tool
+if the user asks for date, only then use the get_date tool
+use the search_tool for answering questions that require up to date information
 """
-llm = ChatOllama(model="qwen2.5:3b")
+llm = ChatOllama(model="gemma4")
 
-agent = create_agent(model=llm, tools=[get_date], system_prompt=system_prompt, checkpointer=checkpoint)
+agent = create_agent(model=llm, tools=[get_date,search_tool], system_prompt=system_prompt, checkpointer=checkpoint)
 
 def chat(message,history,thread_id):
     config = {"configurable": {"thread_id" : thread_id}}
@@ -46,3 +45,5 @@ with gr.Blocks() as demo:
     gr.ChatInterface(fn=chat, additional_inputs=[thread_id])
 
 demo.launch()
+
+#/Users/abhijeetprakash/PycharmProjects/AI_Agent/main.py:21: LangChainDeprecationWarning: The class `TavilySearchResults` was deprecated in LangChain 0.3.25 and will be removed in 1.0. An updated version of the class exists in the `langchain-tavily package and should be used instead. To use it run `pip install -U `langchain-tavily` and import as `from `langchain_tavily import TavilySearch``.
